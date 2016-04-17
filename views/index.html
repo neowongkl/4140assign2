@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>YouTube Remote</title>
+		<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
+		<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" />
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css">
+
+		<!-- *************add QR code here -->
+
+	</head>
+	<body>
+		<div class="container-fluid">
+			<table>
+				<tr>
+					<td><h3>YouTube Remote</h3></td>
+					<td>
+						<script>
+							var QRcode = "https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=" + location.href;
+							document.write(
+								'<img src=' + QRcode + '>'
+							);
+						</script>
+					</td>
+				</tr>
+			</table>
+
+			<div class="row">
+
+				<div class="hidden-xs hidden-sm col-md-8">
+					<div class="panel panel-primary">
+						<div class="panel-heading">YouTube Player</div>
+						<div class="panel-body">
+							<!-- ******* the player is here -->
+							<div id="player"></div>
+							<script src="javascripts/player.js"></script>
+						</div>
+					</div>
+				</div>
+
+				<div class="col-md-4">
+					<div class="panel panel-primary">
+						<div class="panel-heading">YouTube Remote Control</div>
+						<div class="panel-body">
+							<!-- for phone and desktop -->
+							<div class="hidden-sm">
+								<table class="table table-striped">
+									<tr>
+										<td onclick="play()" class="btn btn-lg btn-default"><i class="fa fa-play-circle-o" aria-hidden="true"></i></td>
+										<td onclick="pause()" class="btn btn-lg btn-default"><i class="fa fa-pause-circle-o" aria-hidden="true"></i></td>
+										<td onclick="stop()" class="btn btn-lg btn-default"><i class="fa fa-stop-circle-o" aria-hidden="true"></i></td>
+									</tr>
+
+									<tr>
+										<td onclick="previous()" class="btn btn-lg btn-default"><i class="fa fa-step-backward" aria-hidden="true"></i></td>
+										<td onclick="rewind()" class="btn btn-lg btn-default"><i class="fa fa-backward" aria-hidden="true"></i></td>
+										<td onclick="forward()" class="btn btn-lg btn-default"><i class="fa fa-forward" aria-hidden="true"></i></td>
+										<td onclick="next()" class="btn btn-lg btn-default"><i class="fa fa-step-forward" aria-hidden="true"></i></td>
+									</tr>
+
+									<tr>
+										<td onclick="unMute()" class="btn btn-lg btn-default"><i class="fa fa-volume-up" aria-hidden="true"></i></td>
+										<td onclick="mute()" class="btn btn-lg btn-default"><i class="fa fa-volume-off" aria-hidden="true"></i></td>
+									</tr>
+								</table>
+							</div>
+
+							<div class="visible-sm">
+								<table class="table table-striped">
+									<tr>
+										<td onclick="play()" class="btn btn-lg btn-default"><i class="fa fa-play-circle-o" aria-hidden="true"></i>Play</td>
+										<td onclick="pause()" class="btn btn-lg btn-default"><i class="fa fa-pause-circle-o" aria-hidden="true"></i>Pause</td>
+										<td onclick="stop()" class="btn btn-lg btn-default"><i class="fa fa-stop-circle-o" aria-hidden="true"></i>Stop</td>
+									</tr>
+
+									<tr>
+										<td onclick="previous()" class="btn btn-lg btn-default"><i class="fa fa-step-backward" aria-hidden="true"></i>Previous</td>
+										<td onclick="rewind()" class="btn btn-lg btn-default"><i class="fa fa-backward" aria-hidden="true"></i>Rewind</td>
+										<td onclick="forward()" class="btn btn-lg btn-default"><i class="fa fa-forward" aria-hidden="true"></i>Fast Forward</td>
+										<td onclick="next()" class="btn btn-lg btn-default"><i class="fa fa-step-forward" aria-hidden="true"></i>Next</td>
+									</tr>
+
+									<tr>
+										<td onclick="unMute()" class="btn btn-lg btn-default"><i class="fa fa-volume-up" aria-hidden="true"></i>Unmute</td>
+										<td onclick="mute()" class="btn btn-lg btn-default"><i class="fa fa-volume-off" aria-hidden="true"></i>Mute</td>
+									</tr>
+								</table>
+							</div>
+
+						</div>
+					</div>
+
+					<div class="panel panel-primary">
+						<div class="panel-heading">PlayList</div>
+						<div class="panel-body">
+							<!-- ***********the play list is here -->
+							<ul id="playListArea"></ul>
+							<form id="form">
+								<div class="form-group">
+									<input type="text" class="form-control" id="m" autocomplete="off" placeholder="Type your message here" />
+								</div>
+								<button type="submit" class="btn btn-primary btn-block">Send</button>
+							</form>
+							<form id="clear">
+								<button type="submit" class="btn btn-primary btn-block">Clear All</button>
+							</form>
+						</div>
+						</div>
+					</div>
+
+				</div>
+
+			</div>
+		</div>
+		<script src="//code.jquery.com/jquery-2.2.2.min.js"></script>
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+			if ( ! Array.prototype.last ) {
+				Array.prototype.last = (function() {
+					return this[ this.length - 1 ];
+				});
+			}
+			var id = window.location.href.split( '/' ).last();
+
+			var socket = io();
+
+			socket.emit( 'register', id);
+
+			var $m = $( '#m' );
+
+			$( '#clear' ).on( 'submit', function( e ) {
+				e.preventDefault();
+				socket.emit('clearAll');
+
+			});
+			socket.on('clearAll', function(){
+				$playListArea.empty();
+				playList = [];
+				playAt = 0;
+				player.loadVideoById();
+				player.stopVideo();
+			})
+
+			$( '#form' ).on( 'submit', function( e ) {
+				e.preventDefault();
+				// window.alert("ha");
+				var videoId = getVideoIDFromURL($m.val());
+
+				var APIkey = 'AIzaSyAzBgejejXXXiGrG2Wkfx9pDq2yd54zwpU';
+				var url = 'https://www.googleapis.com/youtube/v3/videos?part=id%2Csnippet&id=' + videoId + '&key=' + APIkey;
+
+				$.get( url, function( data ) {
+					// Check if the video ID is valid
+					if ( data.items.length == 0 ) {
+						alert( 'Video not found!' );
+						return;
+					}
+					// window.alert(data.items[ 0 ].snippet.title);
+					// // Retrieve video title from ".items[ 0 ].snippet.title"
+					// $( '#title' ).html( data.items[ 0 ].snippet.title );
+					//
+					// // Debug message
+					// $( '#url' ).html( url );
+					// $( '#response' ).html( JSON.stringify( data ) );)
+					socket.emit( 'addVideo', videoId, data.items[0].snippet.title);
+					$m.val( '' );
+				});
+
+			} );
+
+			function getVideoIDFromURL( url ) {
+ 				var regExp =/^.*(youtu.be\/|v\/|e\/|u\/\w+\/|embed\/|v=)([^#\&\?]*).*/;
+ 				var match = url.match( regExp );
+ 				if ( match && match[ 2 ].length == 11 ){
+ 					return match[ 2 ];
+ 				} else {
+ 					return url;
+ 				}
+			}
+
+			// video function
+			function play(){
+				socket.emit( 'play' );
+			}
+			socket.on( 'play', function(){
+				player.playVideo();
+
+			})
+
+			function pause(){
+				socket.emit( 'pause' );
+			}
+			socket.on( 'pause', function(){
+				player.pauseVideo();
+			})
+
+			function stop(){
+				socket.emit( 'stop' );
+			}
+			socket.on( 'stop', function(){
+				player.stopVideo();
+				playAt = 0;
+				player.loadVideoById(playList[0]);
+				player.stopVideo();
+			})
+
+			function unMute(){
+				socket.emit( 'unMute' );
+			}
+			socket.on( 'unMute', function(){
+				player.unMute();
+			})
+
+			function mute(){
+				socket.emit( 'mute' );
+			}
+			socket.on( 'mute', function(){
+				player.mute();
+			})
+
+			function rewind(){
+				socket.emit( 'rewind' );
+			}
+			socket.on( 'rewind', function(){
+				var currentTime = player.getCurrentTime();
+				player.seekTo( currentTime - 2);
+			})
+
+			function forward(){
+				socket.emit( 'forward' );
+			}
+			socket.on( 'forward', function(){
+				var currentTime = player.getCurrentTime();
+				player.seekTo( currentTime + 2);
+			})
+
+			function previous(){
+				if( player.getPlayerState() != 1){
+					socket.emit( 'previous' );
+				}
+			}
+			socket.on( 'previous', function(){
+				if(playAt > 0 && playList.length > 1){
+
+					playAt = playAt - 1;
+					player.loadVideoById(playList[playAt]);
+				}
+			})
+
+			function next(){
+				if( player.getPlayerState() != 1){
+					socket.emit( 'next' );
+				}
+
+			}
+			socket.on( 'next', function(){
+				if(playAt < playList.length-1 ){
+					playAt = playAt + 1;
+					player.loadVideoById(playList[playAt]);
+				}
+			})
+
+			var $playListArea = $('#playListArea');
+			socket.on( 'loadPlayList', function(data){
+				// window.alert('loadPlayList');
+				$playListArea.empty();
+				playList = []
+				// playAt = 0;
+				for(var i = 0 ; i < data.length ; i++){
+					// window.alert('haha');
+				//
+					playList.push(data[i].videoId);
+				// 	window.alert("ha");
+					// $playListArea.append('<li>'+'<p>ID: '+data[i].videoId+'</p>'+'<p>Title'+data[i].title+'</p>'+'</li>');
+					$playListArea.append('<li><button id='+i+'><p>ID: ' + data[i].videoId+'<p>Title: '+ data[i].title + '</p></p></button><i id='+i+' class="fa fa-trash-o" aria-hidden="true"></i></li>')
+				}
+
+			});
+
+			$("#playListArea").on('click','li button', function(){
+				var video = this.id;
+				socket.emit('selectVideo', video);
+
+			});
+			socket.on('selectVideo', function(data){
+				playAt = data;
+				player.loadVideoById(playList[playAt]);
+			});
+
+			$("#playListArea").on('click','li i', function(){
+				var video = this.id;
+				if( video == playAt && playAt == 0){
+					player.loadVideoById(playList[1]);
+					player.stopVideo();
+				}
+				else if( video == playAt){
+					playAt = playAt - 1;
+					player.loadVideoById(playList[playAt]);
+					player.stopVideo();
+				}
+				else if( video < playAt){
+					playAt = playAt - 1;
+				}
+				socket.emit('deleteVideo', playList[video]);
+			});
+
+			socket.on('addVideo', function(data1, data2){
+				if(playList.length == 0){
+					player.loadVideoById(data1);
+					player.stopVideo();
+				}
+				playList.push(data1);
+				var i = playList.length-1;
+				$playListArea.append('<li><button id='+i+'><p>ID: ' + data1 +'<p>Title: '+ data2 + '</p></p></button><i id='+i+' class="fa fa-trash-o" aria-hidden="true"></i></li>');
+
+			});
+
+
+
+
+
+		</script>
+
+
+	</body>
+</html>
